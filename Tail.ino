@@ -20,23 +20,6 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_StepperMotor *left = AFMS.getStepper(200, 2);
 Adafruit_StepperMotor *right = AFMS.getStepper(200, 1);
 
-void forwardstep1() {  
-  left->onestep(FORWARD, DOUBLE);
-}
-void backwardstep1() {  
-  left->onestep(BACKWARD, DOUBLE);
-}
-// wrappers for the second motor!
-void forwardstep2() {  
-  right->onestep(FORWARD, DOUBLE);
-}
-void backwardstep2() {  
-  right->onestep(BACKWARD, DOUBLE);
-}
-
-AccelStepper stepper1(forwardstep1, backwardstep1);
-AccelStepper stepper2(forwardstep2, backwardstep2);
-
 
 
 void setup() {
@@ -53,23 +36,12 @@ void setup() {
 
   left->setSpeed(4000);
   right->setSpeed(4000);  // 10 rpm
-
-  stepper1.setMaxSpeed(3000.0);
-  stepper1.setAcceleration(100.0);
-  stepper1.moveTo(100);
-
-  stepper2.setMaxSpeed(3000.0);
-  stepper2.setAcceleration(100.0);
-  stepper2.moveTo(-100);
 }
 
 void loop() {        
-  if (stepper1.distanceToGo() == 0)
-    stepper1.moveTo(-stepper1.currentPosition());
-  if (stepper2.distanceToGo() == 0)
-    stepper2.moveTo(-stepper2.currentPosition());
-  stepper1.run();
-  stepper2.run();
+  Step(1, 1, 40);
+  Step(-1, -1, 80);  
+  Step(1, 1, 40);
 }
 
 void Step(int l, int r, int loops) {
