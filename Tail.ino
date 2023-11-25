@@ -1,52 +1,62 @@
-/*
-This is a test sketch for the Adafruit assembled Motor Shield for Arduino v2
-It won't work with v1.x motor shields! Only for the v2's with built in PWM
-control
+#define SERVOL_PIN 9
+#define SERVOR_PIN 10
+#define BUTTON_0_PIN 3
+#define BUTTON_1_PIN 4
+#define BUTTON_2_PIN 5
+#define BUTTON_3_PIN 6
+#define BUTTON_4_PIN 7
+#include <Servo.h>
 
-For use with the Adafruit Motor Shield v2
----->  http://www.adafruit.com/products/1438
-*/
-
-#include <Adafruit_MotorShield.h>
-#include <AccelStepper.h>
-
-// Create the motor shield object with the default I2C address
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-// Or, create it with a different I2C address (say for stacking)
-// Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61);
-
-// Connect a stepper motor with 200 steps per revolution (1.8 degree)
-// to motor port #2 (M3 and M4)
-Adafruit_StepperMotor *left = AFMS.getStepper(200, 2);
-Adafruit_StepperMotor *right = AFMS.getStepper(200, 1);
-
-
+Servo left;
+Servo right;
 
 void setup() {
-  Serial.begin(9600);           // set up Serial library at 9600 bps
-  while (!Serial);
-  Serial.println("Stepper test!");
-
-  if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
-  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
-    Serial.println("Could not find Motor Shield. Check wiring.");
-    while (1);
-  }
-  Serial.println("Motor Shield found.");
-
-  left->setSpeed(4000);
-  right->setSpeed(4000);  // 10 rpm
+  left.attach(SERVOL_PIN);
+  right.attach(SERVOR_PIN);
+  Serial.begin(9600);
 }
 
-void loop() {        
-  Step(1, 1, 40);
-  Step(-1, -1, 80);  
-  Step(1, 1, 40);
+int angleL = 1000;
+int angleR = 1000;
+
+bool button0down = false;
+bool button1down = false;
+bool button2down = false;
+bool button3down = false;
+
+void loop() {
+  HandleButtons();
+  if(button0down) angleL += 5;
+  else if(button1down) angleL -= 5;
+  if(button2down) angleR += 5;
+  else if(button3down) angleR -= 5;
+  angleR = constrain(angleR, 0, 100);
+  angleL = constrain(angleL, 0, 100);
+  Serial.print("R");
+  Serial.println(angleR);
+  Serial.print("L");
+  Serial.println(angleL);
+  SetL(angleL);
+  SetR(angleR);
+  delay(500);
 }
 
-void Step(int l, int r, int loops) {
-  for(int i = 0; i < loops; i++) {
-    left->step(abs(l), l < 0 ? BACKWARD : FORWARD, DOUBLE);
-    right->step(abs(r), r < 0 ? BACKWARD : FORWARD, DOUBLE);
-  }
+void SetL(long percentage) {
+  left.writeMicroseconds(map(percentage, 0, 100, 500, 2500));
+}
+void SetR(long percentage) {
+  right.writeMicroseconds(map(percentage, 0, 100, 2500, 500));
+}
+
+void HandleButtons() {
+  button0down = digitalRead(BUTTON_0_PIN) == HIGH;
+  button1down = digitalRead(BUTTON_1_PIN) == HIGH;
+  button2down = digitalRead(BUTTON_2_PIN) == HIGH;
+  button3down = digitalRead(BUTTON_3_PIN) == HIGH;
+}
+
+void SendPulse(int pin, long width) {
+  digitalWrite(pin, HIGH);
+  delayMicroseconds(width);
+  digitalWrite(pin, LOW);
 }
