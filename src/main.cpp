@@ -8,7 +8,6 @@
 #include <Arduino.h>
 #include <Servo.h>
 #include <Adafruit_NeoPixel.h>
-#include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
@@ -17,9 +16,6 @@
 Servo left;
 Servo right;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
-
-const char *ssid = "ComputerElite-Tail";
-const char *password = "VerySecure";
 
 
 // All extern ///
@@ -59,15 +55,15 @@ void setup() {
   right.attach(SERVOR_PIN);
   SetL(percentageL);
   SetR(percentageR);
-  Serial.begin(115200);
+  Serial.begin(9600);
   strip.begin();
-
-  WiFi.softAP(ssid,password);
+  LoadPreferences();
+  BeginWifi();
   Serial.print("Soft-AP IP address = ");
   Serial.println(WiFi.softAPIP());
 
   SetupServer();
-  server.begin();
+  RestartServer();
 }
 
 double GetDeltaTime() {
@@ -88,8 +84,6 @@ void PrintDebug() {
   Serial.print(targetPercentageL);
   Serial.print(" ");
   Serial.println(targetPercentageR);
-  Serial.print("[Server Connected] ");
-  Serial.println(WiFi.softAPIP());
 }
 
 
@@ -97,8 +91,9 @@ void loop() {
   deltaTime = GetDeltaTime();
   lastLoop = millis();
   HandleAnimation();
-  PrintDebug();
+  //PrintDebug();
   HandleLEDS();
+  HandleWifi();
 
   if(targetPercentageL < percentageL) {
     percentageL -= percentPerSecond * deltaTime;

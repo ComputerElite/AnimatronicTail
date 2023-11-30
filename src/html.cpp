@@ -31,8 +31,18 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   </div>
   <button onclick="sendPositions()">Send Positions</button>
+  <h3>Speed</h3>
+  <input type="number" onchange="sendSpeed()" min="1" max="70" value="40" id="speed">
+  <h3>WiFi</h3>
+  <label>SSID<input type="text" id="ssid"></label><br>
+  <label>Password<input type="text" id="password"></label><br>
+  <i id="wifiStatus"></i><br>
+  <button onclick="sendWiFi()">Send WiFi</button>
 </body>
 <script>
+    const ssid = document.getElementById("ssid");
+    const password = document.getElementById("password");
+    const speedRange = document.getElementById("speed");
     const animations = [
         {
             name: "Rest low",
@@ -119,15 +129,55 @@ const char index_html[] PROGMEM = R"rawliteral(
         })
     }
 
+    function sendLED(led) {
+        fetch(`/led`, {
+            method: "POST",
+            body: led
+        })
+    }
+
+    function sendSpeed() {
+        fetch(`/speed`, {
+            method: "POST",
+            body: speedRange.value
+        })
+    }
+
     function sendAnimation(animation, speed) {
         fetch(`/animation`, {
             method: "POST",
             body: animation
         })
+        speedRange.value = speed
         fetch(`/speed`, {
             method: "POST",
             body: speed
         })
+    }
+
+    UpdateWifi()
+    function UpdateWifi() {
+        fetch("/wifi")
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                ssid.value = data.ssid;
+                password.value = data.password;
+                document.getElementById("wifiStatus").innerText = data.status;
+            })
+    
+    }
+
+    function sendWiFi() {
+        fetch(`/wifi`, {
+            method: "POST",
+            body: JSON.stringify({
+                ssid: ssid.value,
+                password: password.value
+            })
+        })
+        alert("WiFi sent. ESP will try to connect to it. Keep your eye out for a new network device. If it fails the setup network will open again.")
     }
 </script>
 </html>
