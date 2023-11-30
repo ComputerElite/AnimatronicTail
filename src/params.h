@@ -12,6 +12,7 @@ enum LEDAnimation {
     WIFI_CONNECTED = 2,
     WIFI_CONNECTING = 3,
     WIFI_CONNECTION_FAILED = 4,
+    OFF = 5
 };
 
 extern Adafruit_NeoPixel strip;

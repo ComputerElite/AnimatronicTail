@@ -90,6 +90,12 @@ void HandleLEDS() {
   case WIFI_CONNECTED:
     WiFiConnected();
     break;
+  case OFF:
+    SetColor(strip.Color(0, 0, 0));
+    break;
+  case WIFI_CONNECTION_FAILED:
+    Breathe(strip.Color(255, 0, 0));
+    break;
 
   default:
     break;
