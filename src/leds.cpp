@@ -5,16 +5,16 @@
 long hue = 0;
 long animationSetTime = 0;
 double secondsSinceAnimationStart = 0;
-double animationSpeed = 1;
+double animationSpeed = 7;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
-double brightnessMultiplier = 255;
+uint8_t brightnessValue = 255;
 
 void SetBrightness(int brightness) {
-  brightnessMultiplier = brightness / 255.0;
+  brightnessValue = brightness;
 }
 int GetBrightness() {
-  return static_cast<int>(brightnessMultiplier * 255.0);
+  return brightnessValue;
 }
 
 // animation variabls
@@ -39,15 +39,15 @@ LEDAnimation GetLED() {
   return currentLEDAnimation;
 }
 
-uint32_t GetColorBrightness(uint32_t color, double brightness) {
-  uint8_t r, g, b;
-  r = (color >> 16) & 0xFF;
-  g = (color >> 8) & 0xFF;
-  b = color & 0xFF;
-  r *= brightness;
-  g *= brightness;
-  b *= brightness;
-  return strip.Color(r, g, b);
+uint32_t GetColorBrightness(uint32_t color, uint8_t brightness) {
+  //return color;
+
+  // Scale each 8 bytes
+  for (size_t j = 0; j < sizeof(uint32_t); j += sizeof(uint8_t)) {
+        color = (color & ~(0xFF << (j * 8))) | 
+                ((static_cast<uint32_t>((color >> (j * 8)) & 0xFF) * brightness) >> 8) << (j * 8);
+  }
+  return color;
 }
 
 uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
@@ -62,6 +62,7 @@ uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
   uint8_t r = r1 + (r2 - r1) * percentage;
   uint8_t g = g1 + (g2 - g1) * percentage;
   uint8_t b = b1 + (b2 - b1) * percentage;
+  strip.setBrightness(255);
   return strip.Color(r, g, b);
 }
 
@@ -115,7 +116,8 @@ long GetStepForTime() {
 }
 
 void SetPixelColor(int pixel, uint32_t color) {
-  strip.setPixelColor(pixel, GetColorBrightness(color, brightnessMultiplier));
+  color = GetColorBrightness(color, brightnessValue);
+  strip.setPixelColor(pixel, color);
 }
 
 void RainbowFade() {
@@ -134,7 +136,7 @@ void SetAllPixelsNonShow(uint32_t color) {
   }
 }
 
-void SetAllPixelsNonShow(uint32_t color, double brightness) {
+void SetAllPixelsNonShow(uint32_t color, uint8_t brightness) {
   for(int i=0; i<strip.numPixels(); i++) { 
     SetPixelColor(i, GetColorBrightness(color, brightness));
   }
@@ -148,8 +150,11 @@ void SetColor(uint32_t color) {
 void Breathe(uint32_t color) {
   breathSecondCounter += deltaTimeSeconds * currentBreathsPerSecond;
   double brightness = sin(breathSecondCounter * 2*PI) * 0.5 + 0.5;
+  if(brightness < 0) brightness = 0;
+  if(brightness > 1) brightness = 1;
 
-  SetAllPixelsNonShow(currentColor, brightness);
+
+  SetAllPixelsNonShow(currentColor, static_cast<uint8_t>(brightness * 255.0));
   strip.show();
 }
 

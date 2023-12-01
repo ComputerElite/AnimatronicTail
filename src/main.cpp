@@ -20,6 +20,7 @@ void setup() {
   LoadPreferences();
   SetLED(LEDAnimation::WIFI_CONNECTING);
   BeginWifi();
+  BeginServos();
   Serial.print("Soft-AP IP address = ");
   Serial.println(WiFi.softAPIP());
 
@@ -52,6 +53,5 @@ void loop() {
   //PrintDebug();
   HandleLEDS();
   HandleWifi();
-
   HandleServos();
 }
