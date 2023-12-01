@@ -1,8 +1,13 @@
-#include "params.h"
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "server.h"
+#include "html.h"
+#include "animations.h"
+#include "wifi.h"
+#include "leds.h"
+AsyncWebServer server(80);
 
 void RestartServer() {
   server.end();

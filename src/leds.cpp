@@ -1,4 +1,5 @@
-#include "params.h"
+#include "leds.h"
+#include "animations.h"
 
 long hue = 0;
 long lastDelta = 0;
@@ -8,6 +9,8 @@ long lastAnimationStart = 0;
 long timeSinceAnimationStart = 0;
 long lastTimeSinceAnimationStart = 0;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 
 void SetLED(LEDAnimation animation) {
   Serial.println(animation);
@@ -20,6 +23,10 @@ long GetStepForTime() {
   if(lastDelta == deltaTime) return tmpStepRes;
   tmpStepRes = deltaTime * 1000.0 * percentPerSecond;
   return tmpStepRes;
+}
+
+void Begin() {
+
 }
 
 void RainbowFade() {

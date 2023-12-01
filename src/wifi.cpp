@@ -1,6 +1,7 @@
-#include "params.h"
-#include "Preferences.h"
 #include <ESP8266WiFi.h>
+#include "preferences.h"
+#include "wifi.h"
+#include "leds.h"
 
 
 const char *setupSSID = "ComputerElite-Tail-Setup";

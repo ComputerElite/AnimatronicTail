@@ -1,5 +1,5 @@
 #include <Preferences.h>
-#include "params.h"
+#include "wifi.h"
 Preferences prefs;
 
 const char* ns = "Tail";
