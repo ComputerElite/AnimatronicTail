@@ -1,4 +1,5 @@
 #include "animations.h"
+#include "main.h"
 #include <Servo.h>
 
 double percentageL = 0;
@@ -11,8 +12,6 @@ int currentAnimation = 0;
 int currentAnimationStep = 0;
 bool animationStepComplete = false;
 
-long lastLoop = 0;
-double deltaTime = 0;
 double percentPerSecond = 35;
 
 bool oneShot = false;
@@ -174,24 +173,24 @@ void BeginServos() {
 }
 void HandleServos() {
     if(targetPercentageL < percentageL) {
-    percentageL -= percentPerSecond * deltaTime;
+    percentageL -= percentPerSecond * deltaTimeSeconds;
     if(percentageL < targetPercentageL) {
       percentageL = targetPercentageL;
     }
   } else if(targetPercentageL > percentageL) {
-    percentageL += percentPerSecond * deltaTime;
+    percentageL += percentPerSecond * deltaTimeSeconds;
     if(percentageL > targetPercentageL) {
       percentageL = targetPercentageL;
     }
   }
 
   if(targetPercentageR < percentageR) {
-    percentageR -= percentPerSecond * deltaTime;
+    percentageR -= percentPerSecond * deltaTimeSeconds;
     if(percentageR < targetPercentageR) {
       percentageR = targetPercentageR;
     }
   } else if(targetPercentageR > percentageR) {
-    percentageR += percentPerSecond * deltaTime;
+    percentageR += percentPerSecond * deltaTimeSeconds;
     if(percentageR > targetPercentageR) {
       percentageR = targetPercentageR;
     }

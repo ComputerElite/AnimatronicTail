@@ -2,6 +2,7 @@
 #include "preferences.h"
 #include "wifi.h"
 #include "leds.h"
+#include "main.h"
 
 
 const char *setupSSID = "ComputerElite-Tail-Setup";
@@ -14,8 +15,6 @@ String wifiStatus = "Not connected";
 String lastSSID = "";
 String lastPassword = "";
 
-bool isConnecting = false;
-
 void BeginSetup() {
     wifiStatus = "Please connect to a wifi network to save power";
     WiFi.disconnect();
@@ -27,6 +26,19 @@ void BeginSetup() {
 
 bool isTryingToConnectToNewNetwork = false;
 
+
+void ConnectWifi() {
+    if(ssid != "") {
+        Serial.print("Connecting to ");
+        Serial.println(ssid);
+        Serial.print("With password ");
+        Serial.println(password);
+        WiFi.begin(ssid.c_str(), password == "" ? NULL : password.c_str()); // only connect if ssid is present. If password is empty, connect without password
+    } else {
+        BeginSetup();
+    }
+}
+
 void SetSSIDAndPassword(String newSSID, String newPassword) {
     // Save last SSID to fall back to if connection fails
     // Assume wifi connection suceeded. If it didn't status will be updated
@@ -37,24 +49,16 @@ void SetSSIDAndPassword(String newSSID, String newPassword) {
     password = newPassword;
     isTryingToConnectToNewNetwork = true;
     SavePreferences();
-    BeginWifi();
     SetLED(LEDAnimation::WIFI_CONNECTING);
+    ConnectWifi();
 }
 
 void BeginWifi() {
+    isTryingToConnectToNewNetwork = true;
     WiFi.setHostname(hostname);
     WiFi.setAutoConnect(false);
     WiFi.mode(WIFI_STA);
-    if(ssid != "") {
-        Serial.print("Connecting to ");
-        Serial.println(ssid);
-        Serial.print("With password ");
-        Serial.println(password);
-        isConnecting = true;
-        WiFi.begin(ssid.c_str(), password == "" ? NULL : password.c_str()); // only connect if ssid is present. If password is empty, connect without password
-    } else {
-        BeginSetup();
-    }
+    ConnectWifi();
 }
 
 int attempt = 0;
@@ -69,9 +73,11 @@ void ConnectToLastNetworkIfApplicable() {
             ConnectToLastNetworkIfApplicable();
             return;
         }
-        BeginWifi();
+        ConnectWifi();
         return;
     }
+
+    // Fallback to old network
     if(lastSSID != "") {
         Serial.println("Trying to reconnect to last network");
         ssid = lastSSID;
@@ -81,7 +87,7 @@ void ConnectToLastNetworkIfApplicable() {
         lastSSID = "";
         lastPassword = "";
         attempt = 0;
-        BeginWifi();
+        ConnectWifi();
     } else {
         attempt++;
         if(attempt >= 3) {
@@ -93,14 +99,17 @@ void ConnectToLastNetworkIfApplicable() {
         Serial.println("Retrying connection");
         Serial.print("Attempt ");
         Serial.println(attempt);
-        BeginWifi();
+        ConnectWifi();
     }
 }
 
+long disconnectedTime = 0;
+
 void HandleWifi() {
     if(WiFi.status() == WL_CONNECTED) {
-        if(isConnecting) {
-            isConnecting = false;
+        disconnectedTime = 0;
+        if(isTryingToConnectToNewNetwork) {
+            isTryingToConnectToNewNetwork = false;
             wifiStatus = "WiFi connected!";
             Serial.println("WiFi connected");
             attempt = 0;
@@ -109,18 +118,21 @@ void HandleWifi() {
         return;
     }
     if(WiFi.status() == WL_CONNECT_FAILED) {
+        disconnectedTime = 0;
         wifiStatus = "Connection failed";
         Serial.println("Connection failed");
         ConnectToLastNetworkIfApplicable();
         return;
     }
     if(WiFi.status() == WL_NO_SSID_AVAIL) {
+        disconnectedTime = 0;
         wifiStatus = "SSID not found";
         Serial.println("No SSID available");
         ConnectToLastNetworkIfApplicable();
         return;
     }
     if(WiFi.status() == WL_WRONG_PASSWORD) {
+        disconnectedTime = 0;
         wifiStatus = "Wrong password";
         Serial.println("Wrong password");
         attempt = 1000; // wrong password is wrong. No need to retry
@@ -128,8 +140,18 @@ void HandleWifi() {
         return;
     }
     if(WiFi.status() == WL_CONNECTION_LOST) {
+        disconnectedTime = 0;
         Serial.println("Connection lost, reconnecting");
-        BeginWifi();
+        ConnectWifi();
         return;
+    }
+    if(WiFi.status() == WL_DISCONNECTED) {
+        disconnectedTime += deltaTime;
+        if(disconnectedTime > 20000) {
+            wifiStatus = "Timeout";
+            Serial.println("Disconnected timeout");
+            ConnectToLastNetworkIfApplicable();
+            return;
+        }
     }
 }

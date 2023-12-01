@@ -7,22 +7,24 @@
 #include "wifi.h"
 #include "server.h"
 #include "animations.h"
+#include "main.h"
+
+double deltaTimeSeconds = 0;
+long deltaTime = 0;
+long lastLoop = 0;
 
 
 void setup() {
   Serial.begin(9600);
   strip.begin();
   LoadPreferences();
+  SetLED(LEDAnimation::WIFI_CONNECTING);
   BeginWifi();
   Serial.print("Soft-AP IP address = ");
   Serial.println(WiFi.softAPIP());
 
   SetupServer();
   RestartServer();
-}
-
-double GetDeltaTime() {
-  return static_cast<double>(millis() - lastLoop) / 1000.0;
 }
 
 
@@ -43,7 +45,8 @@ void PrintDebug() {
 
 
 void loop() {
-  deltaTime = GetDeltaTime();
+  deltaTime = millis() - lastLoop;
+  deltaTimeSeconds = static_cast<double>(millis() - lastLoop) / 1000.0;
   lastLoop = millis();
   HandleAnimation();
   //PrintDebug();

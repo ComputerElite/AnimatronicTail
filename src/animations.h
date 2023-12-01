@@ -12,8 +12,6 @@ extern int currentAnimation;
 extern int currentAnimationStep;
 extern bool animationStepComplete;
 
-extern long lastLoop;
-extern double deltaTime;
 extern double percentPerSecond;
 
 extern bool oneShot;

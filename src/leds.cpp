@@ -1,32 +1,66 @@
 #include "leds.h"
+#include "main.h"
 #include "animations.h"
 
 long hue = 0;
-long lastDelta = 0;
-long tmpStepRes = 0;
-long animationStart = 0;
-long lastAnimationStart = 0;
-long timeSinceAnimationStart = 0;
-long lastTimeSinceAnimationStart = 0;
+long animationSetTime = 0;
+double secondsSinceAnimationStart = 0;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+// animation variabls
+uint32_t currentColor = 0;
+uint32_t color0 = 0;
+uint32_t color1 = 0;
+double currentBreathsPerSecond = 0;
+double breathsPerSecond0 = 0;
+double breathsPerSecond1 = 0;
+double breathsLerpFactor = 1;
+
+double breathSecondCounter = 0;
 
 
 void SetLED(LEDAnimation animation) {
   Serial.println(animation);
-  lastAnimationStart = animationStart;
-  animationStart = millis();
   currentLEDAnimation = animation;
+  animationSetTime = millis();
+  if(animation == WIFI_CONNECTED) {
+    color0 = currentColor;
+    color1 = strip.Color(0, 255, 0);
+    Serial.println(color1);
+    breathsPerSecond0 = currentBreathsPerSecond;
+    breathsPerSecond1 = 0.3;
+    breathsLerpFactor = 1;
+    return;
+  }
+  if(animation == WIFI_CONNECTING) {
+    color0 = currentColor;
+    color1 = strip.Color(0, 229, 255);
+    breathsPerSecond0 = currentBreathsPerSecond;
+    breathsPerSecond1 = 1;
+    breathsLerpFactor = 1;
+    return;
+  }
+  if(animation == WIFI_SOFT_AP_OPEN) {
+    color0 = currentColor;
+    color1 = strip.Color(255, 255, 0);
+    breathsPerSecond0 = currentBreathsPerSecond;
+    breathsPerSecond1 = 0.5;
+    breathsLerpFactor = 1;
+    return;
+  }
+  if(animation == WIFI_CONNECTION_FAILED) {
+    color0 = currentColor;
+    color1 = strip.Color(255, 0, 0);
+    breathsPerSecond0 = currentBreathsPerSecond;
+    breathsPerSecond1 = 2;
+    breathsLerpFactor = 0.5;
+    return;
+  }
 }
 
 long GetStepForTime() {
-  if(lastDelta == deltaTime) return tmpStepRes;
-  tmpStepRes = deltaTime * 1000.0 * percentPerSecond;
-  return tmpStepRes;
-}
-
-void Begin() {
-
+  return static_cast<long>(deltaTime * 65536 / 1000);
 }
 
 void RainbowFade() {
@@ -39,16 +73,22 @@ void RainbowFade() {
   strip.show();
 }
 
-void SetColor(uint32_t color) {
+void SetAllPixelsNonShow(uint32_t color) {
   for(int i=0; i<strip.numPixels(); i++) { 
     strip.setPixelColor(i, color);
   }
+}
+
+void SetColor(uint32_t color) {
+  SetAllPixelsNonShow(color);
   strip.show();
 }
 
 void Breathe(uint32_t color) {
-  double brightness = sin(static_cast<double>(timeSinceAnimationStart) / 1000 * PI * 2) * 0.5 + 0.5;
-  SetColor(color);
+  breathSecondCounter += deltaTimeSeconds * currentBreathsPerSecond;
+  double brightness = sin(breathSecondCounter * PI) * 0.5 + 0.5;
+
+  SetAllPixelsNonShow(currentColor);
   strip.setBrightness(brightness * 255);
   strip.show();
 }
@@ -68,40 +108,49 @@ uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
   return strip.Color(r, g, b);
 }
 
-void WiFiConnected() {
-  double brightness = sin(static_cast<double>(timeSinceAnimationStart) / 1000 * PI * 2) * 0.5 + 0.5;
-  long brightnessValue = brightness *255;
-  SetColor(LerpColor(strip.Color(0, 229, 255), strip.Color(0, 255, 0), static_cast<double>(timeSinceAnimationStart) / 1000));
-  if(brightnessValue < strip.getBrightness()) {
-    // strip gets darker
-    brightnessValue = strip.getBrightness();
-  }
-  strip.setBrightness(brightnessValue);
-  strip.show();
+double Lerp(double a, double b, double percentage) {
+  if(percentage > 1) percentage = 1;
+  return a + (b - a) * percentage;
 }
 
+void LerpColor0ToColor1() {
+  currentColor = LerpColor(color0, color1, secondsSinceAnimationStart);
+}
+
+void LerpBreathsPerSecond0ToBreathsPerSecond1() {
+  currentBreathsPerSecond = Lerp(breathsPerSecond0, breathsPerSecond1, secondsSinceAnimationStart * breathsLerpFactor);
+}
+
+
 void HandleLEDS() {
-  lastTimeSinceAnimationStart = millis() - animationStart;
-  timeSinceAnimationStart = millis() - animationStart;
+  secondsSinceAnimationStart = static_cast<double>(millis() - animationSetTime) / 1000.0;
   switch (currentLEDAnimation)
   {
   case RAINBOW_FADE:
     RainbowFade();
     break;
   case WIFI_SOFT_AP_OPEN:
-    Breathe(strip.Color(255, 0, 0));
+    LerpColor0ToColor1();
+    LerpBreathsPerSecond0ToBreathsPerSecond1();
+    Breathe(currentColor);
     break;
   case WIFI_CONNECTING:
-    Breathe(strip.Color(0, 229, 255));
+    LerpColor0ToColor1();
+    LerpBreathsPerSecond0ToBreathsPerSecond1();
+    Breathe(currentColor);
     break;
   case WIFI_CONNECTED:
-    WiFiConnected();
+    LerpColor0ToColor1();
+    LerpBreathsPerSecond0ToBreathsPerSecond1();
+    Breathe(currentColor);
     break;
   case OFF:
     SetColor(strip.Color(0, 0, 0));
     break;
   case WIFI_CONNECTION_FAILED:
-    Breathe(strip.Color(255, 0, 0));
+    LerpColor0ToColor1();
+    LerpBreathsPerSecond0ToBreathsPerSecond1();
+    Breathe(currentColor);
     break;
 
   default:
