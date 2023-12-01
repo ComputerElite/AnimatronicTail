@@ -17,17 +17,21 @@
   <div id="animations">
 
   </div>
+  <h3>Speed</h3>
+  <input type="number" onchange="sendSpeed()" min="0" max="70" value="40" id="speed">
   <h3>LEDs</h3>
   <div id="leds">
 
   </div>
+  <h3>LED Speed</h3>
+  <input type="number" onchange="sendLEDSpeed()" value="40" id="ledspeed">
+  <h3>LED brightness</h3>
+  <input type="range" onchange="sendLEDBrightness()" min="0" max="255" value="255" id="brightness">
   <h3>Positions</h3>
   <div id="positions">
 
   </div>
   <button onclick="sendPositions()">Send Positions</button>
-  <h3>Speed</h3>
-  <input type="number" onchange="sendSpeed()" min="1" max="70" value="40" id="speed">
   <h3>WiFi</h3>
   <label>SSID<input type="text" id="ssid"></label><br>
   <label>Password<input type="text" id="password"></label><br>
@@ -38,6 +42,8 @@
     const ssid = document.getElementById("ssid");
     const password = document.getElementById("password");
     const speedRange = document.getElementById("speed");
+    const ledSpeedRange = document.getElementById("ledspeed");
+    const brightness = document.getElementById("brightness");
     const animations = [
         {
             name: "Rest low",
@@ -131,10 +137,23 @@
         })
     }
 
+    function sendLEDBrightness() {
+        fetch(`/brightness`, {
+            method: "POST",
+            body: brightness.value
+        })
+    }
+
     function sendSpeed() {
         fetch(`/speed`, {
             method: "POST",
             body: speedRange.value
+        })
+    }
+    function sendLEDSpeed() {
+        fetch(`/ledspeed`, {
+            method: "POST",
+            body: ledSpeedRange.value
         })
     }
 

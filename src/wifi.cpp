@@ -15,12 +15,18 @@ String wifiStatus = "Not connected";
 String lastSSID = "";
 String lastPassword = "";
 
+bool firstConnect = true;
+
+long disconnectedTime = 0;
+bool softAPStarted = false;
+
 void BeginSetup() {
     wifiStatus = "Please connect to a wifi network to save power";
     WiFi.disconnect();
     Serial.println("SoftAP starting");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(setupSSID, setupPassword);
+    softAPStarted = true;
     SetLED(LEDAnimation::WIFI_SOFT_AP_OPEN);
 }
 
@@ -28,6 +34,8 @@ bool isTryingToConnectToNewNetwork = false;
 
 
 void ConnectWifi() {
+    softAPStarted = false;
+    disconnectedTime = 0;
     if(ssid != "") {
         Serial.print("Connecting to ");
         Serial.println(ssid);
@@ -58,6 +66,7 @@ void BeginWifi() {
     WiFi.setHostname(hostname);
     WiFi.setAutoConnect(false);
     WiFi.mode(WIFI_STA);
+    firstConnect = true;
     ConnectWifi();
 }
 
@@ -67,6 +76,11 @@ void ConnectToLastNetworkIfApplicable() {
     if(isTryingToConnectToNewNetwork) {
         attempt++;
         if(attempt >= 3) {
+            if(firstConnect) {
+                firstConnect = false;
+                BeginSetup();
+                return;
+            }
             isTryingToConnectToNewNetwork = false;
             SetLED(LEDAnimation::WIFI_CONNECTION_FAILED);
             attempt = 0;
@@ -76,7 +90,7 @@ void ConnectToLastNetworkIfApplicable() {
         ConnectWifi();
         return;
     }
-
+    
     // Fallback to old network
     if(lastSSID != "") {
         Serial.println("Trying to reconnect to last network");
@@ -103,11 +117,10 @@ void ConnectToLastNetworkIfApplicable() {
     }
 }
 
-long disconnectedTime = 0;
-
 void HandleWifi() {
     if(WiFi.status() == WL_CONNECTED) {
         disconnectedTime = 0;
+        firstConnect = false;
         if(isTryingToConnectToNewNetwork) {
             isTryingToConnectToNewNetwork = false;
             wifiStatus = "WiFi connected!";
@@ -147,11 +160,12 @@ void HandleWifi() {
     }
     if(WiFi.status() == WL_DISCONNECTED) {
         disconnectedTime += deltaTime;
-        if(disconnectedTime > 20000) {
+        if(disconnectedTime > 20000 && !softAPStarted) {
+            disconnectedTime = 0;
             wifiStatus = "Timeout";
             Serial.println("Disconnected timeout");
             ConnectToLastNetworkIfApplicable();
-            return;
         }
+        return;
     }
 }

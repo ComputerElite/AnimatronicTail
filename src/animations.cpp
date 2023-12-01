@@ -21,6 +21,10 @@ int TAIL_POS_LOW = 20;
 int TAIL_POS_MID = 55;
 int TAIL_POS_HIGH = 70;
 
+int GetAnimation() {
+  return currentAnimation;
+}
+
 void SetAnimation(int animation) {
   currentAnimation = animation;
   currentAnimationStep = 0;
@@ -29,6 +33,9 @@ void SetAnimation(int animation) {
 
 void SetSpeed(int speed) {
   percentPerSecond = speed;
+}
+int GetSpeed() {
+  return percentPerSecond;
 }
 
 void HandleAnimation() {

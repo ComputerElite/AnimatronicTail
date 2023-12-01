@@ -14,34 +14,70 @@ void RestartServer() {
   server.begin();
 }
 
+int extractNumber(uint8_t *data, size_t len) {
+  char* str = (char*)data;
+  str[len] = '\0';
+  return atoi(str);
+}
+
 void SetupServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html);
   });
+  // get/set animation
+  server.on("/animation", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(GetAnimation()));
+  });
   server.on("/animation", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
-    SetAnimation(atoi((char*)data));
+    SetAnimation(extractNumber(data, len));
     request->send(200);
+  });
+  // get/set led animation
+  server.on("/led", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(GetLED()));
   });
   server.on("/led", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
-    SetLED(static_cast<LEDAnimation>(atoi((char*)data)));
+    SetLED(static_cast<LEDAnimation>(extractNumber(data, len)));
     request->send(200);
+  });
+  // get/set speed
+  server.on("/speed", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(GetSpeed()));
   });
    server.on("/speed", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
-    SetSpeed(atoi((char*)data));
+    SetSpeed(extractNumber(data, len));
     request->send(200);
   });
+  // get/set led speed
+  server.on("/ledspeed", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(GetLEDSpeed()));
+  });
+  server.on("/ledspeed", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+    if(len < 1) return request->send(400);
+    SetLEDSpeed(extractNumber(data, len));
+    request->send(200);
+  });
+  // get/set brightness
+  server.on("/brightness", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String(GetBrightness() * 255));
+  });
+  server.on("/brightness", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+    if(len < 1) return request->send(400);
+    SetBrightness(extractNumber(data, len));
+    request->send(200);
+  });
+  // get/set tail positions
   server.on("/positions", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
     StaticJsonDocument<128> doc;
-    deserializeJson(doc, data);
+    deserializeJson(doc, data, len);
     TAIL_POS_0 = doc["0"];
     TAIL_POS_LOW = doc["low"];
     TAIL_POS_MID = doc["mid"];
     TAIL_POS_HIGH = doc["high"];
-
 
     request->send(200);
   });
@@ -55,14 +91,7 @@ void SetupServer() {
     serializeJson(doc, output);
     request->send(200, "application/json", output);
   });
-  server.on("/speed", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", String(percentPerSecond));
-  });
-  server.on("/speed", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
-    if(len < 1) return request->send(400);
-    SetSpeed(atoi((char*)data));
-    request->send(200);
-  });
+  // get/set wifi
   server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
     StaticJsonDocument<256> doc;
     doc["ssid"] = ssid;
@@ -75,7 +104,7 @@ void SetupServer() {
   server.on("/wifi", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
     StaticJsonDocument<256> doc;
-    deserializeJson(doc, data);
+    deserializeJson(doc, data, len);
     String newSSID = doc["ssid"].as<String>();
     String newPassword = doc["password"].as<String>();
     SetSSIDAndPassword(newSSID, newPassword);

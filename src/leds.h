@@ -12,6 +12,11 @@ enum LEDAnimation {
 };
 
 extern void SetLED(LEDAnimation animation);
+extern LEDAnimation GetLED();
+extern void SetLEDSpeed(double speed);
+extern double GetLEDSpeed();
 extern void HandleLEDS();
 extern void Begin();
+extern void SetBrightness(int brightness);
+extern int GetBrightness();
 extern Adafruit_NeoPixel strip;

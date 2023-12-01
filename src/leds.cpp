@@ -5,8 +5,17 @@
 long hue = 0;
 long animationSetTime = 0;
 double secondsSinceAnimationStart = 0;
+double animationSpeed = 1;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+double brightnessMultiplier = 255;
+
+void SetBrightness(int brightness) {
+  brightnessMultiplier = brightness / 255.0;
+}
+int GetBrightness() {
+  return static_cast<int>(brightnessMultiplier * 255.0);
+}
 
 // animation variabls
 uint32_t currentColor = 0;
@@ -18,6 +27,48 @@ double breathsPerSecond1 = 0;
 double breathsLerpFactor = 1;
 
 double breathSecondCounter = 0;
+
+void SetLEDSpeed(double speed) {
+  animationSpeed = speed;
+}
+double GetLEDSpeed() {
+  return animationSpeed;
+}
+
+LEDAnimation GetLED() {
+  return currentLEDAnimation;
+}
+
+uint32_t GetColorBrightness(uint32_t color, double brightness) {
+  uint8_t r, g, b;
+  r = (color >> 16) & 0xFF;
+  g = (color >> 8) & 0xFF;
+  b = color & 0xFF;
+  r *= brightness;
+  g *= brightness;
+  b *= brightness;
+  return strip.Color(r, g, b);
+}
+
+uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
+  if(percentage > 1) percentage = 1;
+  uint8_t r1, g1, b1, r2, g2, b2;
+  r1 = (color1 >> 16) & 0xFF;
+  g1 = (color1 >> 8) & 0xFF;
+  b1 = color1 & 0xFF;
+  r2 = (color2 >> 16) & 0xFF;
+  g2 = (color2 >> 8) & 0xFF;
+  b2 = color2 & 0xFF;
+  uint8_t r = r1 + (r2 - r1) * percentage;
+  uint8_t g = g1 + (g2 - g1) * percentage;
+  uint8_t b = b1 + (b2 - b1) * percentage;
+  return strip.Color(r, g, b);
+}
+
+double Lerp(double a, double b, double percentage) {
+  if(percentage > 1) percentage = 1;
+  return a + (b - a) * percentage;
+}
 
 
 void SetLED(LEDAnimation animation) {
@@ -60,22 +111,32 @@ void SetLED(LEDAnimation animation) {
 }
 
 long GetStepForTime() {
-  return static_cast<long>(deltaTime * 65536 / 1000);
+  return static_cast<long>(deltaTime * animationSpeed);
+}
+
+void SetPixelColor(int pixel, uint32_t color) {
+  strip.setPixelColor(pixel, GetColorBrightness(color, brightnessMultiplier));
 }
 
 void RainbowFade() {
   long perPixel = 65536L / strip.numPixels();
   for(int i=0; i<strip.numPixels(); i++) { 
     int pixelHue = hue + (i * perPixel);
-    strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue)));
+    SetPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue)));
   }
-  hue += static_cast<long>(GetStepForTime());
+  hue += GetStepForTime() * 0.5;
   strip.show();
 }
 
 void SetAllPixelsNonShow(uint32_t color) {
   for(int i=0; i<strip.numPixels(); i++) { 
-    strip.setPixelColor(i, color);
+    SetPixelColor(i, color);
+  }
+}
+
+void SetAllPixelsNonShow(uint32_t color, double brightness) {
+  for(int i=0; i<strip.numPixels(); i++) { 
+    SetPixelColor(i, GetColorBrightness(color, brightness));
   }
 }
 
@@ -86,32 +147,13 @@ void SetColor(uint32_t color) {
 
 void Breathe(uint32_t color) {
   breathSecondCounter += deltaTimeSeconds * currentBreathsPerSecond;
-  double brightness = sin(breathSecondCounter * PI) * 0.5 + 0.5;
+  double brightness = sin(breathSecondCounter * 2*PI) * 0.5 + 0.5;
 
-  SetAllPixelsNonShow(currentColor);
-  strip.setBrightness(brightness * 255);
+  SetAllPixelsNonShow(currentColor, brightness);
   strip.show();
 }
 
-uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
-  if(percentage > 1) percentage = 1;
-  uint8_t r1, g1, b1, r2, g2, b2;
-  r1 = (color1 >> 16) & 0xFF;
-  g1 = (color1 >> 8) & 0xFF;
-  b1 = color1 & 0xFF;
-  r2 = (color2 >> 16) & 0xFF;
-  g2 = (color2 >> 8) & 0xFF;
-  b2 = color2 & 0xFF;
-  uint8_t r = r1 + (r2 - r1) * percentage;
-  uint8_t g = g1 + (g2 - g1) * percentage;
-  uint8_t b = b1 + (b2 - b1) * percentage;
-  return strip.Color(r, g, b);
-}
 
-double Lerp(double a, double b, double percentage) {
-  if(percentage > 1) percentage = 1;
-  return a + (b - a) * percentage;
-}
 
 void LerpColor0ToColor1() {
   currentColor = LerpColor(color0, color1, secondsSinceAnimationStart);

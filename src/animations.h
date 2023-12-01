@@ -22,7 +22,9 @@ extern int TAIL_POS_MID;
 extern int TAIL_POS_HIGH;
 extern void HandleAnimation();
 extern void SetAnimation(int animation);
+extern int GetAnimation();
 extern void SetSpeed(int speed);
+extern int GetSpeed();
 
 extern void BeginServos();
 extern void HandleServos();
