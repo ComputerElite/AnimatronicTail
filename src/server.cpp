@@ -14,10 +14,14 @@ void RestartServer() {
   server.begin();
 }
 
-int extractNumber(uint8_t *data, size_t len) {
+char* extractString(uint8_t *data, size_t len) {
   char* str = (char*)data;
   str[len] = '\0';
-  return atoi(str);
+  return str;
+}
+
+int extractNumber(uint8_t *data, size_t len) {
+  return atoi(extractString(data, len));
 }
 
 void SetupServer() {
@@ -31,6 +35,30 @@ void SetupServer() {
   server.on("/animation", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
     if(len < 1) return request->send(400);
     SetAnimation(extractNumber(data, len));
+    request->send(200);
+  });
+  // get led patterns
+  server.on("/ledpatterns", HTTP_GET, [](AsyncWebServerRequest *request){
+    StaticJsonDocument<2048> doc;
+    for (int i = LEDAnimation::ENUM_START + 1; i < LEDAnimation::ENUM_END; ++i)
+    {
+      JsonObject pattern = doc.createNestedObject();
+      pattern["id"] = i;
+      pattern["name"] = led_animation_names[i];
+      pattern["group"] = led_animation_groups[i];
+    }
+    String output;
+    serializeJson(doc, output);
+    request->send(200, "application/json", output);
+  });
+  // get/set led animation
+  server.on("/color0", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", String());
+  });
+  server.on("/color0", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+    if(len < 1) return request->send(400);
+    long num = strtol(extractString(data, len), NULL, 16);
+    color0 = CRGB(num >> 16, num >> 8, num);
     request->send(200);
   });
   // get/set led animation

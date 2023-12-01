@@ -2,13 +2,28 @@
 #include "main.h"
 #include "animations.h"
 
-long hue = 0;
+double hue = 0;
 long animationSetTime = 0;
 double secondsSinceAnimationStart = 0;
 double animationSpeed = 7;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 uint8_t brightnessValue = 255;
+
+#define X(a, name, group) name,
+char const *led_animation_names[] =
+{
+    LED_ANIMATIONS
+};
+#undef X
+
+#define X(a, name, group) group,
+int const led_animation_groups[] =
+{
+    LED_ANIMATIONS
+};
+#undef X
+
+CRGB leds[N_LEDS];
 
 void SetBrightness(int brightness) {
   brightnessValue = brightness;
@@ -18,9 +33,9 @@ int GetBrightness() {
 }
 
 // animation variabls
-uint32_t currentColor = 0;
-uint32_t color0 = 0;
-uint32_t color1 = 0;
+CRGB currentColor = 0;
+CRGB color0 = 0;
+CRGB color1 = 0;
 double currentBreathsPerSecond = 0;
 double breathsPerSecond0 = 0;
 double breathsPerSecond1 = 0;
@@ -39,31 +54,21 @@ LEDAnimation GetLED() {
   return currentLEDAnimation;
 }
 
-uint32_t GetColorBrightness(uint32_t color, uint8_t brightness) {
+CRGB GetColorBrightness(CRGB color, uint8_t brightness) {
   //return color;
 
   // Scale each 8 bytes
-  for (size_t j = 0; j < sizeof(uint32_t); j += sizeof(uint8_t)) {
-        color = (color & ~(0xFF << (j * 8))) | 
-                ((static_cast<uint32_t>((color >> (j * 8)) & 0xFF) * brightness) >> 8) << (j * 8);
-  }
+  color.r = color.r * brightness / 255;
+  color.g = color.g * brightness / 255;
+  color.b = color.b * brightness / 255;
   return color;
 }
 
-uint32_t LerpColor(uint32_t color1, uint32_t color2, double percentage) {
+CRGB LerpColor(CRGB color1, CRGB color2, double percentage) {
   if(percentage > 1) percentage = 1;
-  uint8_t r1, g1, b1, r2, g2, b2;
-  r1 = (color1 >> 16) & 0xFF;
-  g1 = (color1 >> 8) & 0xFF;
-  b1 = color1 & 0xFF;
-  r2 = (color2 >> 16) & 0xFF;
-  g2 = (color2 >> 8) & 0xFF;
-  b2 = color2 & 0xFF;
-  uint8_t r = r1 + (r2 - r1) * percentage;
-  uint8_t g = g1 + (g2 - g1) * percentage;
-  uint8_t b = b1 + (b2 - b1) * percentage;
-  strip.setBrightness(255);
-  return strip.Color(r, g, b);
+  return CRGB(color1.r + (color2.r - color1.r) * percentage,
+              color1.g + (color2.g - color1.g) * percentage, 
+              color1.b + (color2.b - color1.b) * percentage);
 }
 
 double Lerp(double a, double b, double percentage) {
@@ -78,8 +83,7 @@ void SetLED(LEDAnimation animation) {
   animationSetTime = millis();
   if(animation == WIFI_CONNECTED) {
     color0 = currentColor;
-    color1 = strip.Color(0, 255, 0);
-    Serial.println(color1);
+    color1 = CRGB(0, 255, 0);
     breathsPerSecond0 = currentBreathsPerSecond;
     breathsPerSecond1 = 0.3;
     breathsLerpFactor = 1;
@@ -87,7 +91,7 @@ void SetLED(LEDAnimation animation) {
   }
   if(animation == WIFI_CONNECTING) {
     color0 = currentColor;
-    color1 = strip.Color(0, 229, 255);
+    color1 = CRGB(0, 229, 255);
     breathsPerSecond0 = currentBreathsPerSecond;
     breathsPerSecond1 = 1;
     breathsLerpFactor = 1;
@@ -95,7 +99,7 @@ void SetLED(LEDAnimation animation) {
   }
   if(animation == WIFI_SOFT_AP_OPEN) {
     color0 = currentColor;
-    color1 = strip.Color(255, 255, 0);
+    color1 = CRGB(255, 255, 0);
     breathsPerSecond0 = currentBreathsPerSecond;
     breathsPerSecond1 = 0.5;
     breathsLerpFactor = 1;
@@ -103,7 +107,7 @@ void SetLED(LEDAnimation animation) {
   }
   if(animation == WIFI_CONNECTION_FAILED) {
     color0 = currentColor;
-    color1 = strip.Color(255, 0, 0);
+    color1 = CRGB(255, 0, 0);
     breathsPerSecond0 = currentBreathsPerSecond;
     breathsPerSecond1 = 2;
     breathsLerpFactor = 0.5;
@@ -111,51 +115,62 @@ void SetLED(LEDAnimation animation) {
   }
 }
 
-long GetStepForTime() {
-  return static_cast<long>(deltaTime * animationSpeed);
+double GetStepForTime() {
+  return deltaTime / 1000.0 * animationSpeed;
 }
 
-void SetPixelColor(int pixel, uint32_t color) {
+void IncrementHue() {
+  hue += GetStepForTime();
+  if(hue >= 255) hue -= 255;
+}
+
+void SetPixelColor(int pixel, CRGB color) {
   color = GetColorBrightness(color, brightnessValue);
-  strip.setPixelColor(pixel, color);
+  leds[pixel] = color;
+}
+void SetPixelColor(int pixel, CRGB color, uint8_t brightness) {
+  color = GetColorBrightness(color, brightness);
+  color = GetColorBrightness(color, brightnessValue);
+  leds[pixel] = color;
 }
 
 void RainbowFade() {
-  long perPixel = 65536L / strip.numPixels();
-  for(int i=0; i<strip.numPixels(); i++) { 
-    int pixelHue = hue + (i * perPixel);
-    SetPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue)));
+  double perPixel = 255.0 / N_LEDS;
+  for(int i=0; i<N_LEDS; i++) { 
+    long pixelHue = static_cast<long>(hue+ (i * perPixel)) % 255;
+    SetPixelColor(i, CHSV(static_cast<uint8_t>(pixelHue), 255, 255));
   }
-  hue += GetStepForTime() * 0.5;
-  strip.show();
+  Serial.println(GetStepForTime());
+  IncrementHue();
+  FastLED.show();
 }
 
-void SetAllPixelsNonShow(uint32_t color) {
-  for(int i=0; i<strip.numPixels(); i++) { 
+void SetAllPixelsNonShow(CRGB color) {
+  for(int i=0; i<N_LEDS; i++) { 
     SetPixelColor(i, color);
   }
 }
 
-void SetAllPixelsNonShow(uint32_t color, uint8_t brightness) {
-  for(int i=0; i<strip.numPixels(); i++) { 
+void SetAllPixelsNonShow(CRGB color, uint8_t brightness) {
+  for(int i=0; i<N_LEDS; i++) { 
     SetPixelColor(i, GetColorBrightness(color, brightness));
   }
 }
 
-void SetColor(uint32_t color) {
+void SetColor(CRGB color) {
   SetAllPixelsNonShow(color);
-  strip.show();
+  FastLED.show();
 }
 
-void Breathe(uint32_t color) {
+void Breathe(CRGB color) {
   breathSecondCounter += deltaTimeSeconds * currentBreathsPerSecond;
   double brightness = sin(breathSecondCounter * 2*PI) * 0.5 + 0.5;
   if(brightness < 0) brightness = 0;
   if(brightness > 1) brightness = 1;
 
 
-  SetAllPixelsNonShow(currentColor, static_cast<uint8_t>(brightness * 255.0));
-  strip.show();
+  SetAllPixelsNonShow(color, static_cast<uint8_t>(brightness * 255.0));
+  FastLED.show();
 }
 
 
@@ -168,6 +183,55 @@ void LerpBreathsPerSecond0ToBreathsPerSecond1() {
   currentBreathsPerSecond = Lerp(breathsPerSecond0, breathsPerSecond1, secondsSinceAnimationStart * breathsLerpFactor);
 }
 
+void Christmas1() {
+  IncrementHue();
+
+  for(int i=0; i<N_LEDS; i++) {
+    bool isRed = (i + 1) % 8 < 4;
+    if(static_cast<int>(hue) % 64 < 32) isRed = !isRed;
+    SetPixelColor(i, isRed ? CRGB(255, 0, 0) : CRGB(255, 255, 255));
+  }
+  FastLED.show();
+}
+
+int currentMovingLightPixel = 0;
+double deltaTimeSecondsMovingLight = 0;
+int direction = 1;
+double additionalPixelData[N_LEDS];
+void MovingLight() {
+  // Light bounces back and forth
+  deltaTimeSecondsMovingLight += deltaTimeSeconds;
+  if(deltaTimeSecondsMovingLight > 2 / animationSpeed) {
+    deltaTimeSecondsMovingLight = 0;
+    currentMovingLightPixel += 1 * direction;
+    additionalPixelData[currentMovingLightPixel] = 1.0;
+    if(currentMovingLightPixel >= N_LEDS) direction = -1;
+    if(currentMovingLightPixel < 0) direction = 1;
+  }
+  SetAllPixelsNonShow(CRGB(0, 0, 0));
+  for(int i=0; i<N_LEDS; i++) {
+    if(additionalPixelData[i] > 0) {
+      additionalPixelData[i] -= animationSpeed * deltaTimeSeconds * 0.07;
+      if(additionalPixelData[i] < 0) additionalPixelData[i] = 0;
+      SetPixelColor(i, CHSV(static_cast<uint8_t>(hue + i * 5), 200, 255), static_cast<uint8_t>(additionalPixelData[i] * 255));
+    }
+  }
+  FastLED.show();
+}
+
+void RainbowFrontBack() {
+  // Light bounces back and forth
+  IncrementHue();
+  deltaTimeSecondsMovingLight += deltaTimeSeconds;
+  if(deltaTimeSecondsMovingLight > 2 / animationSpeed) {
+    deltaTimeSecondsMovingLight = 0;
+    currentMovingLightPixel += 1;
+    if(currentMovingLightPixel >= N_LEDS) currentMovingLightPixel = 0;
+  }
+  SetPixelColor(currentMovingLightPixel, CHSV(static_cast<uint8_t>(hue), 255, 255));
+
+  FastLED.show();
+}
 
 void HandleLEDS() {
   secondsSinceAnimationStart = static_cast<double>(millis() - animationSetTime) / 1000.0;
@@ -192,14 +256,37 @@ void HandleLEDS() {
     Breathe(currentColor);
     break;
   case OFF:
-    SetColor(strip.Color(0, 0, 0));
+    SetColor(CRGB(0, 0, 0));
     break;
   case WIFI_CONNECTION_FAILED:
     LerpColor0ToColor1();
     LerpBreathsPerSecond0ToBreathsPerSecond1();
     Breathe(currentColor);
     break;
-
+  case CHRISTMAS_1:
+    Christmas1();
+    break;
+  case MOVING_LIGHT:
+    MovingLight();
+    break;
+  case STATIC_LIGHT:
+    SetColor(color0);
+    break;
+  case BREATHE_SLOW:
+    currentBreathsPerSecond = 0.25;
+    Breathe(color0);
+    break;
+  case BREATHE_MID:
+    currentBreathsPerSecond = 0.5;
+    Breathe(color0);
+    break;
+  case BREATHE_FAST:
+    currentBreathsPerSecond = 2;
+    Breathe(color0);
+    break;
+  case RAINBOW_FRONT_BACK:
+    RainbowFrontBack();
+    break;
   default:
     break;
   }

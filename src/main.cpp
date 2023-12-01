@@ -1,6 +1,6 @@
 #define VRX_PIN A2
 #define VRY_PIN A1
-
+#include <FastLED.h>
 #include "animations.h"
 #include "leds.h"
 #include "preferences.h"
@@ -16,7 +16,7 @@ long lastLoop = 0;
 
 void setup() {
   Serial.begin(9600);
-  strip.begin();
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, N_LEDS);
   LoadPreferences();
   SetLED(LEDAnimation::WIFI_CONNECTING);
   BeginWifi();
