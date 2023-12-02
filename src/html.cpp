@@ -109,9 +109,9 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     picker = new ReinventedColorWheel({
                     appendTo: document.getElementById('color0'),
-                    wheelDiameter: 500,
-                    wheelThickness: 80,
-                    handleDiameter: 70,
+                    wheelDiameter: 250,
+                    wheelThickness: 40,
+                    handleDiameter: 35,
                     onChange: SetColor0
                 })
 
