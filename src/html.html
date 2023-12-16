@@ -23,9 +23,11 @@
         grid-template-columns: repeat(3, 1fr);
         grid-gap: 10px;
     }
+
+    .reinvented-color-wheel,.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--hue-wheel,.reinvented-color-wheel--sv-handle,.reinvented-color-wheel--sv-space{touch-action:manipulation;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.reinvented-color-wheel{position:relative;display:inline-block;line-height:0;border-radius:50%}.reinvented-color-wheel--hue-wheel{border-radius:50%}.reinvented-color-wheel--sv-space{position:absolute;left:0;top:0;right:0;bottom:0;margin:auto}.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--sv-handle{position:absolute;box-sizing:border-box;pointer-events:none;border-radius:50%;border:2px solid #fff;box-shadow:inset 0 0 0 1px #000}
   </style>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reinvented-color-wheel@0.1.6/css/reinvented-color-wheel.min.css">
-<script src="https://cdn.jsdelivr.net/npm/reinvented-color-wheel@0.1.6"></script>
+<link rel="stylesheet" href="/wheel.css">
+<script src="/wheel.js"></script>
 </head>
 <body>
   <h2>ESP8266 for Tail</h2>
@@ -64,43 +66,6 @@
     const speedRange = document.getElementById("speed");
     const ledSpeedRange = document.getElementById("ledspeed");
     const brightness = document.getElementById("brightness");
-    const animations = [
-        {
-            name: "Rest low",
-            value: 0,
-            speed: 30
-        },
-        {
-            name: "Rest mid",
-            value: 5,
-            speed: 30
-        },
-        {
-            name: "Rest high",
-            value: 6,
-            speed: 30
-        },
-        {
-            name: "V Wag",
-            value: 1,
-            speed: 30
-        },
-        {
-            name: "Wag",
-            value: 2,
-            speed: 30
-        },
-        {
-            name: "Excited Wag",
-            value: 3,
-            speed: 50
-        },
-        {
-            name: "Up and down",
-            value: 4,
-            speed: 20
-        },
-    ]
 
     picker = new ReinventedColorWheel({
                     appendTo: document.getElementById('color0'),
@@ -123,11 +88,6 @@
         }
     }
 
-    var animationHtml = ``;
-    animations.forEach((animation) => {
-        animationHtml += `<button onclick="sendAnimation(${animation.value}, ${animation.speed})">${animation.name}</button>`
-    })
-    document.getElementById("animations").innerHTML = animationHtml;
 
     UpdateLEDPatterns()
     function UpdateLEDPatterns() {
@@ -139,6 +99,19 @@
                 ledHTML += `<button onclick="sendLED(${animation.id})">${animation.name}</button>`
             })
             document.getElementById("leds").innerHTML = ledHTML;
+        })
+    }
+
+    UpdatePatterns()
+    function UpdatePatterns() {
+        fetch("/patterns").then((response) => {
+            return response.json();
+        }).then((animations) => {
+            var animationHtml = ``;
+            animations.forEach((animation) => {
+                animationHtml += `<button onclick="sendAnimation(${animation.id}, ${animation.speed})">${animation.name}</button>`
+            })
+            document.getElementById("animations").innerHTML = animationHtml;
         })
     }
 

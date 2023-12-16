@@ -206,7 +206,7 @@ void MovingLight() {
     currentMovingLightPixel += 1 * direction;
     additionalPixelData[currentMovingLightPixel] = 1.0;
     if(currentMovingLightPixel >= N_LEDS) direction = -1;
-    if(currentMovingLightPixel < 0) direction = 1;
+    if(currentMovingLightPixel <= 0) direction = 1;
   }
   SetAllPixelsNonShow(CRGB(0, 0, 0));
   for(int i=0; i<N_LEDS; i++) {

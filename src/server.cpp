@@ -28,6 +28,12 @@ void SetupServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html);
   });
+  server.on("/wheel.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/html", wheelJs);
+  });
+  server.on("/wheel.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/html", wheelCss);
+  });
   // get/set animation
   server.on("/animation", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", String(GetAnimation()));
@@ -46,6 +52,20 @@ void SetupServer() {
       pattern["id"] = i;
       pattern["name"] = led_animation_names[i];
       pattern["group"] = led_animation_groups[i];
+    }
+    String output;
+    serializeJson(doc, output);
+    request->send(200, "application/json", output);
+  });
+  server.on("/patterns", HTTP_GET, [](AsyncWebServerRequest *request){
+    StaticJsonDocument<2048> doc;
+    for (int i = TailAnimation::ENUM_START_TAIL + 1; i < TailAnimation::ENUM_END_TAIL; ++i)
+    {
+      JsonObject pattern = doc.createNestedObject();
+      pattern["id"] = i;
+      pattern["name"] = tail_animation_names[i];
+      pattern["group"] = tail_animation_groups[i];
+      pattern["speed"] = tail_animation_speeds[i];
     }
     String output;
     serializeJson(doc, output);

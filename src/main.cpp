@@ -1,7 +1,6 @@
 #define VRX_PIN A2
 #define VRY_PIN A1
 #include <FastLED.h>
-#include "animations.h"
 #include "leds.h"
 #include "preferences.h"
 #include "wifi.h"

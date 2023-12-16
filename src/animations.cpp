@@ -12,6 +12,27 @@ int currentAnimation = 0;
 int currentAnimationStep = 0;
 bool animationStepComplete = false;
 
+#define X(a, name, speed, group) name,
+char const *tail_animation_names[] =
+{
+    TAIL_ANIMATIONS
+};
+#undef X
+
+#define X(a, name, speed, group) group,
+int const tail_animation_groups[] =
+{
+    TAIL_ANIMATIONS
+};
+#undef X
+
+#define X(a, name, speed, group) speed,
+int const tail_animation_speeds[] =
+{
+    TAIL_ANIMATIONS
+};
+#undef X
+
 double percentPerSecond = 35;
 
 bool oneShot = false;
@@ -46,14 +67,14 @@ void HandleAnimation() {
 
   switch (currentAnimation)
   {
-  case 0:
+  case REST_LOW:
     // Stop tail
     targetPercentageL = TAIL_POS_0;
     targetPercentageR = TAIL_POS_0;
     break;
 
 
-  case 1:
+  case V_WAG:
     // go to default pos
     switch (currentAnimationStep)
     {
@@ -85,7 +106,7 @@ void HandleAnimation() {
     break;
 
 
-  case 2:
+  case WAG:
     switch (currentAnimationStep)
     {
     case 0:
@@ -106,15 +127,15 @@ void HandleAnimation() {
       break;
     }
     break;
-  case 3:
+  case EXCITED_WAG:
     switch (currentAnimationStep)
     {
     case 0:
       targetPercentageL = TAIL_POS_MID;
-      targetPercentageR = TAIL_POS_MID - 10;  
+      targetPercentageR = TAIL_POS_MID - 20;  
       break;
     case 1:
-      targetPercentageL = TAIL_POS_MID - 10;
+      targetPercentageL = TAIL_POS_MID - 20;
       targetPercentageR = TAIL_POS_MID;  
       break;
     default:
@@ -128,7 +149,7 @@ void HandleAnimation() {
     }
     break;
 
-  case 4:
+  case UP_AND_DOWN:
     switch (currentAnimationStep)
     {
     case 0:
@@ -149,14 +170,44 @@ void HandleAnimation() {
       break;
     }
     break;
-  case 5:
+  case REST_MID:
     targetPercentageL = TAIL_POS_MID;
     targetPercentageR = TAIL_POS_MID;
     break;
-  case 6:
+  case REST_HIGH:
     targetPercentageL = TAIL_POS_HIGH;
     targetPercentageR = TAIL_POS_HIGH;
     break;
+  case CIRCLE:
+    switch (currentAnimationStep)
+    {
+    case 0:
+      targetPercentageL = TAIL_POS_LOW;
+      targetPercentageR = TAIL_POS_LOW;  
+      break;
+    case 1:
+      targetPercentageL = TAIL_POS_LOW;
+      targetPercentageR = TAIL_POS_MID;  
+      break;
+    case 2:
+      targetPercentageL = TAIL_POS_HIGH;
+      targetPercentageR = TAIL_POS_HIGH;  
+      break;
+    case 3:
+      targetPercentageL = TAIL_POS_MID;
+      targetPercentageR = TAIL_POS_LOW;  
+      break;
+    default:
+      if(oneShot) currentAnimation = 0;
+      else {
+        currentAnimationStep = 0;
+        animationStepComplete = false;
+        HandleAnimation();
+      }
+      break;
+    }
+    break;
+
   default:
     currentAnimation = 0;
     break;

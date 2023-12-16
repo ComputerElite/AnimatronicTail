@@ -67,6 +67,11 @@ void BeginWifi() {
     WiFi.setAutoConnect(false);
     WiFi.mode(WIFI_STA);
     firstConnect = true;
+    if(ssid == setupSSID) {
+        // Open AP if ssid is ap ssid
+        BeginSetup();
+        return;
+    }
     ConnectWifi();
 }
 
