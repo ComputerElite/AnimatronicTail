@@ -7,6 +7,7 @@ This is a project for an animatronic tail with LEDs
 # Project roadmap (personal tail)
 * [ ] Replace 30led/m strip with 60 or 144led/m strip
 * [ ] Add fur covering (which still lets light through)
+* [ ] Add IMU for cool movement sync stuff
 
 # Videos and Pictures
 ToDo 
