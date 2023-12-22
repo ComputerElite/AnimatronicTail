@@ -32,7 +32,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     .reinvented-color-wheel,.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--hue-wheel,.reinvented-color-wheel--sv-handle,.reinvented-color-wheel--sv-space{touch-action:manipulation;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.reinvented-color-wheel{position:relative;display:inline-block;line-height:0;border-radius:50%}.reinvented-color-wheel--hue-wheel{border-radius:50%}.reinvented-color-wheel--sv-space{position:absolute;left:0;top:0;right:0;bottom:0;margin:auto}.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--sv-handle{position:absolute;box-sizing:border-box;pointer-events:none;border-radius:50%;border:2px solid #fff;box-shadow:inset 0 0 0 1px #000}
   </style>
 <link rel="stylesheet" href="/wheel.css">
-<script src="/wheel.js"></script>
 </head>
 <body>
   <h2>ESP8266 for Tail</h2>
@@ -54,7 +53,16 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div id="color0">
 
   </div>
-  <h3>Positions</h3>
+    </div>
+    <h3>RawR</h3>
+    <input type="range" min="0" max="100" value="0" id="rawr" oninput="SendRaw()">
+    <h3>RawL</h3>
+    <input type="range" min="0" max="100" value="0" id="rawl" oninput="SendRaw()">
+    <h3>Stick</h3>
+    <label>Speedbrake<input type="checkbox" id="brake" checked></label>
+    <!--Center this div-->
+    <div id="joy1Div" style="width: 400px; height: 400px;"></div>
+    <h3>Positions</h3>
   <div id="positions">
 
   </div>
@@ -64,21 +72,64 @@ const char index_html[] PROGMEM = R"rawliteral(
   <label>Password<input type="text" id="password"></label><br>
   <i id="wifiStatus"></i><br>
   <button onclick="sendWiFi()">Send WiFi</button>
-</body>
+  
 <script>
     const ssid = document.getElementById("ssid");
     const password = document.getElementById("password");
     const speedRange = document.getElementById("speed");
     const ledSpeedRange = document.getElementById("ledspeed");
     const brightness = document.getElementById("brightness");
+    const rawr = document.getElementById("rawr");
+    const rawl = document.getElementById("rawl");
+    const brake = document.getElementById("brake");
+    function AddStick() {
+        
+        var Joy1 = new JoyStick('joy1Div', {autoReturnToCenter: false}, function(stickData) {
+            CaluclateMotors(parseFloat(stickData.x + ""), parseFloat(stickData.y + ""))
+        });
+    }
 
-    picker = new ReinventedColorWheel({
-                    appendTo: document.getElementById('color0'),
-                    wheelDiameter: 250,
-                    wheelThickness: 40,
-                    handleDiameter: 35,
-                    onChange: SetColor0
-                })
+    function CaluclateMotors(x, y) {
+        console.log("in", x, y);
+        var rawStart = (y + 100) / 2;
+        var dirAmount = Math.abs(x) / 100
+        var l = rawStart;
+        var r = rawStart;
+        if(x < 0) {
+            l *= Lerp(1, 0, dirAmount)
+            r *= Lerp(1, 2, dirAmount)
+        } else {
+            l *= Lerp(1, 2, dirAmount)
+            r *= Lerp(1, 0, dirAmount)
+        }
+        console.log("out", l, r);
+        rawr.value = r;
+        rawl.value = l;
+    }
+
+    function Lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    var sentR = -1;
+    var sentL = -1;
+    setInterval(() => {
+        if(rawr.value != sentR || rawl.value != sentL) {
+            sentR = rawr.value;
+            sentL = rawl.value;
+            SendRaw();
+        }
+    }, 75);
+
+    function AddWheel() {
+        picker = new ReinventedColorWheel({
+                        appendTo: document.getElementById('color0'),
+                        wheelDiameter: 250,
+                        wheelThickness: 40,
+                        handleDiameter: 35,
+                        onChange: SetColor0
+                    })
+    }
 
     function SetColor0(color, update = true) {
         console.log(color);
@@ -86,17 +137,37 @@ const char index_html[] PROGMEM = R"rawliteral(
         var c = HSVtoRGB(color.hsv[0], color.hsv[1], color.hsv[2]);
         var hex = ((c.r << 16) + (c.g << 8) + c.b).toString(16)
         if(update) {
-            fetch(`/color0`, {
+            fetch(ip + `/color0`, {
                 method: "POST",
                 body: hex
             });
         }
     }
+    var ip = ''
+
+    function Init(urlStart) {
+        ip = urlStart;
+        UpdateLEDPatterns()
+        UpdatePatterns()
+        UpdatePositions();
+        UpdateWifi()
+    }
+    Init('')
+
+    function SendRaw() {
+        fetch(ip + `/goto`, {
+            method: "POST",
+            body: JSON.stringify({
+                r: rawr.value,
+                l: rawl.value,
+                brake: brake.checked
+            })
+        })
+    }
 
 
-    UpdateLEDPatterns()
     function UpdateLEDPatterns() {
-        fetch("/ledpatterns").then((response) => {
+        fetch(ip + "/ledpatterns").then((response) => {
             return response.json();
         }).then((leds) => {
             var ledHTML = ``;
@@ -107,9 +178,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         })
     }
 
-    UpdatePatterns()
     function UpdatePatterns() {
-        fetch("/patterns").then((response) => {
+        fetch(ip + "/patterns").then((response) => {
             return response.json();
         }).then((animations) => {
             var animationHtml = ``;
@@ -121,7 +191,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     function UpdatePositions() {
-        fetch("/positions")
+        fetch(ip + "/positions")
             .then((response) => {
                 return response.json();
             })
@@ -134,7 +204,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             })
     }
 
-    UpdatePositions();
 
     function sendPositions() {
         var positions = document.getElementsByClassName("positions");
@@ -143,54 +212,53 @@ const char index_html[] PROGMEM = R"rawliteral(
             body[positions[i].labels[0].innerText] = parseInt(positions[i].value);
         }
         alert(JSON.stringify(body));
-        fetch(`/positions`, {
+        fetch(ip + `/positions`, {
             method: "POST",
             body: JSON.stringify(body)
         })
     }
 
     function sendLED(led) {
-        fetch(`/led`, {
+        fetch(ip + `/led`, {
             method: "POST",
             body: led
         })
     }
 
     function sendLEDBrightness() {
-        fetch(`/brightness`, {
+        fetch(ip + `/brightness`, {
             method: "POST",
             body: brightness.value
         })
     }
 
     function sendSpeed() {
-        fetch(`/speed`, {
+        fetch(ip + `/speed`, {
             method: "POST",
             body: speedRange.value
         })
     }
     function sendLEDSpeed() {
-        fetch(`/ledspeed`, {
+        fetch(ip + `/ledspeed`, {
             method: "POST",
             body: ledSpeedRange.value
         })
     }
 
     function sendAnimation(animation, speed) {
-        fetch(`/animation`, {
+        fetch(ip + `/animation`, {
             method: "POST",
             body: animation
         })
         speedRange.value = speed
-        fetch(`/speed`, {
+        fetch(ip + `/speed`, {
             method: "POST",
             body: speed
         })
     }
 
-    UpdateWifi()
     function UpdateWifi() {
-        fetch("/wifi")
+        fetch(ip + "/wifi")
             .then((response) => {
                 return response.json();
             })
@@ -203,7 +271,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
 
     function sendWiFi() {
-        fetch(`/wifi`, {
+        fetch(ip + `/wifi`, {
             method: "POST",
             body: JSON.stringify({
                 ssid: ssid.value,
@@ -309,9 +377,16 @@ const char index_html[] PROGMEM = R"rawliteral(
             return { r: r, g: g, b: b };
         }
 </script>
+<script src="/wheel.js" onload="AddWheel()"></script>
+<script src="/joy.js" onload="AddStick()"></script>
+</body>
+
 </html>
 )rawliteral";
 
+const char joyJs[] PROGMEM = R"rawliteral(
+let StickStatus={xPosition:0,yPosition:0,x:0,y:0,cardinalDirection:"C"};var JoyStick=function(t,e,i){var o=void 0===(e=e||{}).title?"joystick":e.title,n=void 0===e.width?0:e.width,a=void 0===e.height?0:e.height,r=void 0===e.internalFillColor?"#00AA00":e.internalFillColor,c=void 0===e.internalLineWidth?2:e.internalLineWidth,s=void 0===e.internalStrokeColor?"#003300":e.internalStrokeColor,d=void 0===e.externalLineWidth?2:e.externalLineWidth,u=void 0===e.externalStrokeColor?"#008000":e.externalStrokeColor,h=void 0===e.autoReturnToCenter||e.autoReturnToCenter;i=i||function(t){};var S=document.getElementById(t);S.style.touchAction="none";var f=document.createElement("canvas");f.id=o,0===n&&(n=S.clientWidth),0===a&&(a=S.clientHeight),f.width=n,f.height=a,S.appendChild(f);var l=f.getContext("2d"),k=0,g=2*Math.PI,x=(f.width-(f.width/2+10))/2,v=x+5,P=x+30,m=f.width/2,C=f.height/2,p=f.width/10,y=-1*p,w=f.height/10,L=-1*w,F=m,E=C;function W(){l.beginPath(),l.arc(m,C,P,0,g,!1),l.lineWidth=d,l.strokeStyle=u,l.stroke()}function T(){l.beginPath(),F<x&&(F=v),F+x>f.width&&(F=f.width-v),E<x&&(E=v),E+x>f.height&&(E=f.height-v),l.arc(F,E,x,0,g,!1);var t=l.createRadialGradient(m,C,5,m,C,200);t.addColorStop(0,r),t.addColorStop(1,s),l.fillStyle=t,l.fill(),l.lineWidth=c,l.strokeStyle=s,l.stroke()}function D(){let t="",e=F-m,i=E-C;return i>=L&&i<=w&&(t="C"),i<L&&(t="N"),i>w&&(t="S"),e<y&&("C"===t?t="W":t+="W"),e>p&&("C"===t?t="E":t+="E"),t}"ontouchstart"in document.documentElement?(f.addEventListener("touchstart",function(t){k=1},!1),document.addEventListener("touchmove",function(t){1===k&&t.targetTouches[0].target===f&&(F=t.targetTouches[0].pageX,E=t.targetTouches[0].pageY,"BODY"===f.offsetParent.tagName.toUpperCase()?(F-=f.offsetLeft,E-=f.offsetTop):(F-=f.offsetParent.offsetLeft,E-=f.offsetParent.offsetTop),l.clearRect(0,0,f.width,f.height),W(),T(),StickStatus.xPosition=F,StickStatus.yPosition=E,StickStatus.x=((F-m)/v*100).toFixed(),StickStatus.y=((E-C)/v*100*-1).toFixed(),StickStatus.cardinalDirection=D(),i(StickStatus))},!1),document.addEventListener("touchend",function(t){k=0,h&&(F=m,E=C);l.clearRect(0,0,f.width,f.height),W(),T(),StickStatus.xPosition=F,StickStatus.yPosition=E,StickStatus.x=((F-m)/v*100).toFixed(),StickStatus.y=((E-C)/v*100*-1).toFixed(),StickStatus.cardinalDirection=D(),i(StickStatus)},!1)):(f.addEventListener("mousedown",function(t){k=1},!1),document.addEventListener("mousemove",function(t){1===k&&(F=t.pageX,E=t.pageY,"BODY"===f.offsetParent.tagName.toUpperCase()?(F-=f.offsetLeft,E-=f.offsetTop):(F-=f.offsetParent.offsetLeft,E-=f.offsetParent.offsetTop),l.clearRect(0,0,f.width,f.height),W(),T(),StickStatus.xPosition=F,StickStatus.yPosition=E,StickStatus.x=((F-m)/v*100).toFixed(),StickStatus.y=((E-C)/v*100*-1).toFixed(),StickStatus.cardinalDirection=D(),i(StickStatus))},!1),document.addEventListener("mouseup",function(t){k=0,h&&(F=m,E=C);l.clearRect(0,0,f.width,f.height),W(),T(),StickStatus.xPosition=F,StickStatus.yPosition=E,StickStatus.x=((F-m)/v*100).toFixed(),StickStatus.y=((E-C)/v*100*-1).toFixed(),StickStatus.cardinalDirection=D(),i(StickStatus)},!1)),W(),T(),this.GetWidth=function(){return f.width},this.GetHeight=function(){return f.height},this.GetPosX=function(){return F},this.GetPosY=function(){return E},this.GetX=function(){return((F-m)/v*100).toFixed()},this.GetY=function(){return((E-C)/v*100*-1).toFixed()},this.GetDir=function(){return D()}};
+)rawliteral";
 
 const char wheelCss[] PROGMEM = R"rawliteral(
 .reinvented-color-wheel,.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--hue-wheel,.reinvented-color-wheel--sv-handle,.reinvented-color-wheel--sv-space{touch-action:manipulation;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.reinvented-color-wheel{position:relative;display:inline-block;line-height:0;border-radius:50%}.reinvented-color-wheel--hue-wheel{border-radius:50%}.reinvented-color-wheel--sv-space{position:absolute;left:0;top:0;right:0;bottom:0;margin:auto}.reinvented-color-wheel--hue-handle,.reinvented-color-wheel--sv-handle{position:absolute;box-sizing:border-box;pointer-events:none;border-radius:50%;border:2px solid #fff;box-shadow:inset 0 0 0 1px #000}

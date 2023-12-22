@@ -28,6 +28,9 @@ void SetupServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html);
   });
+  server.on("/joy.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/html", joyJs);
+  });
   server.on("/wheel.js", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/html", wheelJs);
   });
@@ -70,6 +73,19 @@ void SetupServer() {
     String output;
     serializeJson(doc, output);
     request->send(200, "application/json", output);
+  });
+  server.on("/goto", HTTP_POST, [](AsyncWebServerRequest * request){},NULL,[](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+    
+    StaticJsonDocument<128> doc;
+    deserializeJson(doc, data, len);
+    currentAnimation = 0;
+    if(!doc["brake"]) {
+      percentageL = doc["l"];
+      percentageR = doc["r"];
+    }
+    targetPercentageL = doc["l"];
+    targetPercentageR = doc["r"];
+    request->send(200, "text/plain", "Moved to position");
   });
   // get/set led animation
   server.on("/color0", HTTP_GET, [](AsyncWebServerRequest *request){
