@@ -26,16 +26,16 @@ int extractNumber(uint8_t *data, size_t len) {
 
 void SetupServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/html", index_html);
+    request->send_P(200, "text/html", index_html);
   });
   server.on("/joy.js", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/html", joyJs);
+    request->send_P(200, "application/javascript", joyJs);
   });
   server.on("/wheel.js", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/html", wheelJs);
+    request->send_P(200, "text/html", wheelJs);
   });
   server.on("/wheel.css", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/html", wheelCss);
+    request->send_P(200, "text/style", wheelCss);
   });
   // get/set animation
   server.on("/animation", HTTP_GET, [](AsyncWebServerRequest *request){

@@ -1,7 +1,93 @@
 #include <FastLED.h>
 #define N_LEDS 28
 #define LED_PIN D2
-extern CRGB leds[N_LEDS];
+
+// #define RGBW // uncomment for RGBW strip
+struct CRGBW  {
+	union {
+		struct {
+			union {
+				uint8_t g;
+				uint8_t green;
+			};
+			union {
+				uint8_t r;
+				uint8_t red;
+			};
+			union {
+				uint8_t b;
+				uint8_t blue;
+			};
+            #ifdef RGBW
+			union {
+				uint8_t w;
+				uint8_t white;
+			};
+            #endif
+		};
+
+        #ifdef RGBW
+		uint8_t raw[4];
+        #else
+        uint8_t raw[3];
+        #endif
+	};
+	CRGBW(){}
+	CRGBW(uint8_t rd, uint8_t grn, uint8_t blu){
+		r = rd;
+		g = grn;
+		b = blu;
+        #ifdef RGBW
+		w = 0;
+        #endif
+	}
+
+	CRGBW(uint8_t rd, uint8_t grn, uint8_t blu, uint8_t wht){
+		r = rd;
+		g = grn;
+		b = blu;
+        #ifdef RGBW
+		w = wht;
+        #endif
+	}
+	inline void operator = (const CRGB c) __attribute__((always_inline)){ 
+		this->r = c.r;
+		this->g = c.g;
+		this->b = c.b;
+
+        #ifdef RGBW
+		this->white = 0;
+        #endif
+	}
+	inline void operator = (const CRGBW c) __attribute__((always_inline)){ 
+		this->r = c.r;
+		this->g = c.g;
+		this->b = c.b;
+        #ifdef RGBW
+		this->white = c.w;
+        #endif
+	}
+    inline void operator = (const int c) __attribute__((always_inline)){ 
+		this->r = c >> 24 && 0xFF;
+		this->g = c >> 16 && 0xFF;
+		this->b = c >> 8 && 0xFF;
+        #ifdef RGBW
+		this->white = c && 0xFF;
+        #endif
+	}
+};
+inline uint16_t getRGBWsize(uint16_t nleds){
+	uint16_t nbytes = nleds * 4;
+    #ifdef RGBW
+	if(nbytes % 3 > 0) return nbytes / 3 + 1;
+	else return nbytes / 3;
+    #else
+    return nleds;
+    #endif
+}
+
+extern CRGBW leds[N_LEDS];
+extern CRGB *ledsRGB;
 
 #define LED_ANIMATIONS \
 X(ENUM_START, "Enum start", -1) \

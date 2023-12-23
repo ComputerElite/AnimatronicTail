@@ -15,7 +15,7 @@ long lastLoop = 0;
 
 void setup() {
   Serial.begin(9600);
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, N_LEDS);
+  FastLED.addLeds<WS2812B, LED_PIN>(ledsRGB, getRGBWsize(N_LEDS));
   LoadPreferences();
   SetLED(LEDAnimation::WIFI_CONNECTING);
   BeginWifi();
@@ -53,4 +53,5 @@ void loop() {
   HandleLEDS();
   HandleWifi();
   HandleServos();
+  delay(5);
 }

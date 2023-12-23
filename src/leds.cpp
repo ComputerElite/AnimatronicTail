@@ -23,7 +23,9 @@ int const led_animation_groups[] =
 };
 #undef X
 
-CRGB leds[N_LEDS];
+CRGBW leds[N_LEDS];
+
+extern CRGB *ledsRGB = (CRGB *) &leds[0];
 
 void SetBrightness(int brightness) {
   brightnessValue = brightness;
