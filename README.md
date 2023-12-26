@@ -13,7 +13,7 @@ This is a project for an animatronic tail with LEDs
 ToDo 
 
 # Building the tail
-*As of 2022/12/16*
+*As of 2023/12/16*
 ## Background
 I saw animatronic tails by the tail company and said "yeah I can do that too".
 
