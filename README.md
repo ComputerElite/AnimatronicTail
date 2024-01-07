@@ -5,8 +5,8 @@ This is a project for an animatronic tail with LEDs
 `computerelite` on Discord or open an issue on this repo. If you know me personal message me on Telegram.
 
 # Project roadmap (personal tail)
-* [ ] Replace 30led/m strip with 60 or 144led/m strip (Tip: Check that your cables are thick enough for more leds)
-* [ ] Add fur covering (which still lets light through)
+* [x] Replace 30led/m strip with 60 or 144led/m strip (Tip: Check that your cables are thick enough for more leds)
+* [x] Add fur covering (which still lets light through)
 * [ ] Add IMU for cool movement sync stuff
 
 # Videos and Pictures
