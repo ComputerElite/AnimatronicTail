@@ -1,6 +1,6 @@
 
-#define SERVOL_PIN D1
-#define SERVOR_PIN D0
+#define SERVOL_PIN 18
+#define SERVOR_PIN 19
 
 
 #define TAIL_ANIMATIONS \

@@ -1,6 +1,7 @@
 #include "animations.h"
 #include "main.h"
-#include <Servo.h>
+#include <ESP32Servo.h>
+#include "preferences.h"
 
 double percentageL = 0;
 double percentageR = 0;
@@ -48,12 +49,14 @@ int GetAnimation() {
 
 void SetAnimation(int animation) {
   currentAnimation = animation;
+  SaveAnimation(currentAnimation);
   currentAnimationStep = 0;
   animationStepComplete = true;
 }
 
 void SetSpeed(int speed) {
   percentPerSecond = speed;
+  SaveSpeed(speed);
 }
 int GetSpeed() {
   return percentPerSecond;

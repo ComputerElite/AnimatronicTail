@@ -7,6 +7,7 @@
 #include "server.h"
 #include "animations.h"
 #include "main.h"
+#include "bluetooth.h"
 
 double deltaTimeSeconds = 0;
 long deltaTime = 0;
@@ -16,14 +17,16 @@ long lastLoop = 0;
 void setup() {
   Serial.begin(9600);
   FastLED.addLeds<WS2812B, LED_PIN>(ledsRGB, getRGBWsize(N_LEDS));
-  LoadPreferences();
   SetLED(LEDAnimation::WIFI_CONNECTING);
+  LoadPreferences();
+  //if(ShouldResetPreferences()) ResetPreferences(false);
   BeginWifi();
   BeginServos();
-  Serial.print("Soft-AP IP address = ");
-  Serial.println(WiFi.softAPIP());
+  //Serial.print("Soft-AP IP address = ");
+  //Serial.println(WiFi.softAPIP());
 
   SetupServer();
+  //SetupBluetooth();
   RestartServer();
 }
 
@@ -43,7 +46,6 @@ void PrintDebug() {
   Serial.println(targetPercentageR);
 }
 
-
 void loop() {
   deltaTime = millis() - lastLoop;
   deltaTimeSeconds = static_cast<double>(millis() - lastLoop) / 1000.0;
@@ -53,5 +55,6 @@ void loop() {
   HandleLEDS();
   HandleWifi();
   HandleServos();
+  //HandleBluetooth();
   delay(5);
 }

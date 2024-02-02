@@ -1,8 +1,9 @@
 #include <FastLED.h>
-#define N_LEDS 28
-#define LED_PIN D2
-
-// #define RGBW // uncomment for RGBW strip
+#define N_LEDS 144
+#define LED_PIN 16
+//#define HALF
+#define MAX_BRIGHTNESS 255
+#define RGBW // uncomment for RGBW strip
 struct CRGBW  {
 	union {
 		struct {
@@ -24,13 +25,37 @@ struct CRGBW  {
 				uint8_t white;
 			};
             #endif
+			#ifdef HALF
+			union {
+				uint8_t f1;
+			};
+			union {
+				uint8_t f2;
+			};
+			union {
+				uint8_t f3;
+			};
+            #ifdef RGBW
+			union {
+				uint8_t f4;
+			};
+			#endif
+			#endif
 		};
 
-        #ifdef RGBW
-		uint8_t raw[4];
-        #else
-        uint8_t raw[3];
-        #endif
+		#ifdef HALF
+			#ifdef RGBW
+			uint8_t raw[8];
+			#else
+			uint8_t raw[6];
+			#endif
+		#else
+			#ifdef RGBW
+			uint8_t raw[4];
+			#else
+			uint8_t raw[3];
+			#endif
+		#endif
 	};
 	CRGBW(){}
 	CRGBW(uint8_t rd, uint8_t grn, uint8_t blu){
@@ -78,12 +103,21 @@ struct CRGBW  {
 };
 inline uint16_t getRGBWsize(uint16_t nleds){
 	uint16_t nbytes = nleds * 4;
-    #ifdef RGBW
-	if(nbytes % 3 > 0) return nbytes / 3 + 1;
-	else return nbytes / 3;
-    #else
-    return nleds;
-    #endif
+	#ifdef HALF
+		#ifdef RGBW
+		if(nbytes % 3 > 0) return (nbytes / 3 + 1)*2;
+		else return (nbytes / 3)*2;
+		#else
+		return nleds;
+		#endif
+	#else
+		#ifdef RGBW
+		if(nbytes % 3 > 0) return nbytes / 3 + 1;
+		else return nbytes / 3;
+		#else
+		return nleds;
+		#endif
+	#endif
 }
 
 extern CRGBW leds[N_LEDS];
@@ -122,6 +156,7 @@ extern CRGB color0;
 
 extern void SetLED(LEDAnimation animation);
 extern LEDAnimation GetLED();
+extern uint8_t brightnessValueInternal;
 extern void SetLEDSpeed(double speed);
 extern double GetLEDSpeed();
 extern void HandleLEDS();

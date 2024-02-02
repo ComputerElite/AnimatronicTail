@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+    </head>
+    <body>
+        <input type="button" value="Request" onclick="Request()">
+        <script>
+            var tailService;
+
+            function ConnectedCallback() {
+                GetValueOfCharacteristic(0x0000).then(value => {
+                    alert(value);
+                });
+            }
+
+            function GetValueOfCharacteristic(uuid) {
+                return new Promise((resolve, reject) => {
+                    tailService.getCharacteristic(uuid).then(characteristic => {
+                        return characteristic.readValue();
+                    }).then(dataView => {
+                        resolve(DataViewToString(dataView));
+                    });
+                });
+            }
+            function Request() {
+                navigator.bluetooth
+                .requestDevice({
+                    filters: [{services: [0xBAAD]}],
+                    optionalServices: [0xBAAD]
+                })
+                .then((device) => {
+                    // Step 2: Connect to it
+                    console.log("device:", device);
+                    return device.gatt.connect();
+                })
+                .then((server) => {
+                    // Step 3: Get the Service
+                    console.log("server: ", server);
+                    console.log("connected: ", server.device.gatt.connected);
+
+                    return server.getPrimaryService(0xBAAD);
+                }).then((service) => {
+                    // Step 4: get the Characteristic
+                    console.log("service: ", service);
+
+                    tailService = service;
+
+                    ConnectedCallback();
+                })
+            }
+
+            function DataViewToString(dv) {
+                return new TextDecoder().decode(dv);
+            }
+        </script>
+    </body>
+</html>

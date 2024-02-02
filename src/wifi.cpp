@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include "preferences.h"
 #include "wifi.h"
 #include "leds.h"
@@ -137,7 +137,7 @@ void HandleWifi() {
     }
     if(WiFi.status() == WL_CONNECT_FAILED) {
         disconnectedTime = 0;
-        wifiStatus = "Connection failed";
+        wifiStatus = "Connection failed. Check password and ssid";
         Serial.println("Connection failed");
         ConnectToLastNetworkIfApplicable();
         return;
@@ -146,14 +146,6 @@ void HandleWifi() {
         disconnectedTime = 0;
         wifiStatus = "SSID not found";
         Serial.println("No SSID available");
-        ConnectToLastNetworkIfApplicable();
-        return;
-    }
-    if(WiFi.status() == WL_WRONG_PASSWORD) {
-        disconnectedTime = 0;
-        wifiStatus = "Wrong password";
-        Serial.println("Wrong password");
-        attempt = 1000; // wrong password is wrong. No need to retry
         ConnectToLastNetworkIfApplicable();
         return;
     }

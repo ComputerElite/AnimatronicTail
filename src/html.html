@@ -56,6 +56,13 @@
     <h3>Stick</h3>
     <label>Speedbrake<input type="checkbox" id="brake" checked></label>
     <div id="joy1Div" style="width: 400px; height: 400px;"></div>
+    <input type="number" onchange="sendSpeed2()" min="0" max="70" value="40" id="speed2">
+    <button onclick="PushPos()">Push position</button>
+    <button onclick="PopPos()">Pop position</button>
+    <button onclick="PlayCustom()">Pop position</button>
+    <div id="customAnimShow">
+
+    </div>
     <h3>Positions</h3>
   <div id="positions">
 
@@ -71,14 +78,77 @@
     const ssid = document.getElementById("ssid");
     const password = document.getElementById("password");
     const speedRange = document.getElementById("speed");
+    const speedRange2 = document.getElementById("speed2");
     const ledSpeedRange = document.getElementById("ledspeed");
     const brightness = document.getElementById("brightness");
     const rawr = document.getElementById("rawr");
     const rawl = document.getElementById("rawl");
     const brake = document.getElementById("brake");
+    const customAnimShow = document.getElementById("customAnimShow");
+    var currentSpeed = 40;
+
+    var customAnim = {
+        name: "custom",
+        pos: []
+    }
+    var currentAnimationStep = 0;
+    var isPlayingCustomAnim = false;
+    function UpdateAnimShow() {
+        var html = "";
+        customAnim.pos.forEach((pos, index) => {
+            html += `<button>${pos.r}<br/> ${pos.l}</button>`
+        })
+        customAnimShow.innerHTML = html;
+    }
+    function PushPos() {
+        customAnim.pos.push({
+            r: parseInt(rawr.value),
+            l: parseInt(rawl.value)
+        })
+        UpdateAnimShow();
+    }
+    function PopPos() {
+        customAnim.pos.pop();
+        UpdateAnimShow();
+    }
+    function NextStep() {
+        if(isPlayingCustomAnim) {
+            currentR = parseInt(rawr.value);
+            currentL = parseInt(rawl.value);
+            console.log("playing " + currentAnimationStep + ": " + customAnim.pos[currentAnimationStep].l + " " + customAnim.pos[currentAnimationStep].r)
+            rawr.value = customAnim.pos[currentAnimationStep].r;
+            rawl.value = customAnim.pos[currentAnimationStep].l;
+            UpdateAnimShow();
+            // Set wait to diff between current and next. Either l or r difference. Larger one.
+            var wait = Math.max(Math.abs(currentR - rawr.value), Math.abs(currentL - rawl.value));
+            // adjust wait by speed. speed is in units per second
+            wait = wait / currentSpeed * 1000;
+            // add buffer
+            wait += 100;
+            
+
+            brake.checked = true;
+            SendRaw();
+            if(currentAnimationStep < customAnim.pos.length - 1) {
+                currentAnimationStep++;
+            } else {
+                currentAnimationStep = 0;
+            }
+            setTimeout(() => {
+                NextStep();
+            }, wait);
+        }
+    }
+    function PlayCustom() {
+        currentAnimationStep = 0;
+        isPlayingCustomAnim = true;
+        NextStep();
+    }
+
     function AddStick() {
         
         var Joy1 = new JoyStick('joy1Div', {autoReturnToCenter: false}, function(stickData) {
+            isPlayingCustomAnim = false;
             CaluclateMotors(parseFloat(stickData.x + ""), parseFloat(stickData.y + ""))
         });
     }
@@ -231,6 +301,14 @@
             method: "POST",
             body: speedRange.value
         })
+        currentSpeed = speedRange.value;
+    }
+    function sendSpeed2() {
+        fetch(ip + `/speed`, {
+            method: "POST",
+            body: speedRange2.value
+        })
+        currentSpeed = speedRange2.value;
     }
     function sendLEDSpeed() {
         fetch(ip + `/ledspeed`, {

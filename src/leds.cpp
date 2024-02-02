@@ -1,13 +1,14 @@
 #include "leds.h"
 #include "main.h"
 #include "animations.h"
+#include "preferences.h"
 
 double hue = 0;
 long animationSetTime = 0;
 double secondsSinceAnimationStart = 0;
 double animationSpeed = 7;
 LEDAnimation currentLEDAnimation = RAINBOW_FADE;
-uint8_t brightnessValue = 255;
+uint8_t brightnessValueInternal = 255;
 
 #define X(a, name, group) name,
 char const *led_animation_names[] =
@@ -28,10 +29,11 @@ CRGBW leds[N_LEDS];
 extern CRGB *ledsRGB = (CRGB *) &leds[0];
 
 void SetBrightness(int brightness) {
-  brightnessValue = brightness;
+  SaveBrightness(brightness);
+  brightnessValueInternal = brightness;
 }
 int GetBrightness() {
-  return brightnessValue;
+  return brightnessValueInternal * MAX_BRIGHTNESS / 255;
 }
 
 // animation variabls
@@ -47,6 +49,7 @@ double breathSecondCounter = 0;
 
 void SetLEDSpeed(double speed) {
   animationSpeed = speed;
+  SaveLEDSpeed(speed);
 }
 double GetLEDSpeed() {
   return animationSpeed;
@@ -80,8 +83,8 @@ double Lerp(double a, double b, double percentage) {
 
 
 void SetLED(LEDAnimation animation) {
-  Serial.println(animation);
   currentLEDAnimation = animation;
+  SaveLEDAnimation(animation);
   animationSetTime = millis();
   if(animation == WIFI_CONNECTED) {
     color0 = currentColor;
@@ -127,12 +130,12 @@ void IncrementHue() {
 }
 
 void SetPixelColor(int pixel, CRGB color) {
-  color = GetColorBrightness(color, brightnessValue);
+  color = GetColorBrightness(color, GetBrightness());
   leds[pixel] = color;
 }
 void SetPixelColor(int pixel, CRGB color, uint8_t brightness) {
   color = GetColorBrightness(color, brightness);
-  color = GetColorBrightness(color, brightnessValue);
+  color = GetColorBrightness(color, GetBrightness());
   leds[pixel] = color;
 }
 
