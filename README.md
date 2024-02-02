@@ -8,6 +8,7 @@ This is a project for an animatronic tail with LEDs
 * [x] Replace 30led/m strip with 60 or 144led/m strip (Tip: Check that your cables are thick enough for more leds)
 * [x] Add fur covering (which still lets light through)
 * [ ] Add IMU for cool movement sync stuff
+* [ ] Save custom animations in backend (or frontend if lazy)
 
 # Videos and Pictures
 ToDo 
